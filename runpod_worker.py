@@ -21,13 +21,14 @@ def process_audio(job):
     job_input = job.get("input", {})
     audio_url = job_input.get("audio_url")
     audio_base64 = job_input.get("audio_base64")
+    file_extension = job_input.get("file_extension", ".wav")  
 
     if not audio_url and not audio_base64:
         return {"error": "Must provide either 'audio_url' or 'audio_base64' in input."}
 
     # Create a temporary workspace for this job
     with tempfile.TemporaryDirectory() as temp_dir:
-        input_path = os.path.join(temp_dir, "input_audio.wav")
+        input_path = os.path.join(temp_dir, f"input_audio{file_extension}")
         output_dir = os.path.join(temp_dir, "demucs_output")
         os.makedirs(output_dir, exist_ok=True)
 
