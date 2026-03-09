@@ -69,25 +69,31 @@ def process_audio(job):
         if not os.path.exists(model_out_dir):
             return {"error": "Demucs output directory not found."}
 
-        # 3. Read Stems and encode to Base64 to return to client
+        # 3. Read Stems, Upload to Tmpfiles, and Return URLs
         results = {}
         stems = ["bass.wav", "drums.wav", "other.wav", "vocals.wav"]
         
         for stem in stems:
             stem_path = os.path.join(model_out_dir, stem)
             if os.path.exists(stem_path):
+                print(f"Uploading {stem} to temporary storage...")
                 with open(stem_path, "rb") as f:
-                    encoded_stem = base64.b64encode(f.read()).decode("utf-8")
+                    resp = requests.post("https://tmpfiles.org/api/v1/upload", files={'file': f}).json()
+                    
+                if resp.get('status') == 'success':
+                    download_url = resp['data']['url'].replace("tmpfiles.org/", "tmpfiles.org/dl/")
                     stem_name = stem.replace('.wav', '')
-                    results[stem_name] = encoded_stem
+                    results[stem_name] = download_url
+                else:
+                    return {"error": f"Failed to upload {stem}."}
             else:
                 return {"error": f"Expected stem {stem} was not generated."}
 
-        print("Job complete, returning stems.")
+        print("Job complete, returning stems URLs.")
         return {
             "status": "success",
             "message": "Stem separation complete",
-            "stems_base64": results
+            "stems_urls": results
         }
 
 # Start the Serverless Worker
